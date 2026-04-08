@@ -1,4 +1,4 @@
-module github.com/way-platform/soap-go/cmd/soap
+module github.com/tnymlr/soap-go/cmd/soap
 
 go 1.25.8
 
@@ -10,7 +10,7 @@ require (
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/spf13/cobra v1.9.1
-	github.com/way-platform/soap-go v0.28.1
+	github.com/tnymlr/soap-go v0.28.1
 )
 
 require (
@@ -57,4 +57,4 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 )
 
-replace github.com/way-platform/soap-go => ../../
+replace github.com/tnymlr/soap-go => ../../
