@@ -16,17 +16,19 @@ type Config struct {
 
 // Generator generates Go code from WSDL definitions
 type Generator struct {
-	definitions *wsdl.Definitions
-	config      Config
-	files       []*codegen.File
+	definitions  *wsdl.Definitions
+	config       Config
+	files        []*codegen.File
+	emittedTypes map[string]bool // tracks types already emitted across schemas
 }
 
 // NewGenerator creates a new Generator with the given WSDL definitions and config
 func NewGenerator(definitions *wsdl.Definitions, config Config) *Generator {
 	return &Generator{
-		definitions: definitions,
-		config:      config,
-		files:       make([]*codegen.File, 0),
+		definitions:  definitions,
+		config:       config,
+		files:        make([]*codegen.File, 0),
+		emittedTypes: make(map[string]bool),
 	}
 }
 
@@ -88,11 +90,12 @@ func (g *Generator) generateTypesFile(schema *xsd.Schema, packageName, filename 
 	file.P("package ", packageName)
 	file.P()
 
-	// Generate RawXML type definition if needed
-	if needsRawXML(schema) {
+	// Generate RawXML type definition if needed (only once per package)
+	if needsRawXML(schema) && !g.emittedTypes["RawXML"] {
 		file.P("// RawXML captures raw XML content for untyped elements.")
 		file.P("type RawXML []byte")
 		file.P()
+		g.emittedTypes["RawXML"] = true
 	}
 
 	// Separate data types from message wrapper types
@@ -104,6 +107,11 @@ func (g *Generator) generateTypesFile(schema *xsd.Schema, packageName, filename 
 
 	// Collect inline enums from all elements first
 	ctx.collectInlineEnums(allElements)
+
+	// Track which types in this schema are already emitted by previous
+	// schemas. We keep them in ctx (so field references resolve) but pass
+	// the skip set to generators so they don't emit duplicate declarations.
+	ctx.skipTypes = g.emittedTypes
 
 	// Import handling is now automatic via QualifiedGoIdent calls
 
@@ -118,6 +126,14 @@ func (g *Generator) generateTypesFile(schema *xsd.Schema, packageName, filename 
 
 	// Generate complex types that are referenced but not top-level elements
 	generateComplexTypes(file, ctx)
+
+	// Mark newly emitted types so subsequent schemas skip them
+	for name := range ctx.simpleTypes {
+		g.emittedTypes[toGoName(name)] = true
+	}
+	for name := range ctx.complexTypes {
+		g.emittedTypes[toGoName(name)] = true
+	}
 
 	// Generate data types with classification-based wrapper naming
 	bindingStyle := g.getBindingStyle()

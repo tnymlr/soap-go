@@ -18,6 +18,7 @@ type SchemaContext struct {
 	anonymousTypes map[string]bool           // Track generated anonymous types
 	inlineEnums    map[string]InlineEnumInfo // Track inline enum types
 	generator      *Generator                // Reference to generator for operation element detection
+	skipTypes      map[string]bool           // Go type names already emitted by previous schemas — skip emission but keep in context for field resolution
 }
 
 // InlineEnumInfo holds information about an inline enum type

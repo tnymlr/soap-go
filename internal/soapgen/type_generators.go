@@ -27,6 +27,9 @@ func generateSimpleTypeConstants(g *codegen.File, ctx *SchemaContext) {
 	// Generate each simple type
 	for _, name := range names {
 		simpleType := ctx.simpleTypes[name]
+		if ctx.skipTypes[toGoName(name)] {
+			continue // Already emitted by a previous schema
+		}
 		if simpleType.Restriction != nil && len(simpleType.Restriction.Enumerations) > 0 {
 			generateEnumType(g, simpleType)
 		}
@@ -175,6 +178,9 @@ func generateComplexTypes(g *codegen.File, ctx *SchemaContext) {
 
 	// Generate each complex type
 	for _, name := range names {
+		if ctx.skipTypes[toGoName(name)] {
+			continue // Already emitted by a previous schema
+		}
 		complexType := ctx.complexTypes[name]
 		generateStructFromComplexType(g, complexType, ctx)
 	}
