@@ -10,7 +10,7 @@ require (
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/spf13/cobra v1.9.1
-	github.com/tnymlr/soap-go v0.0.0-20260408140932-efc300e161b1
+	github.com/tnymlr/soap-go v0.0.0-20260408142937-7d84b5965a28
 )
 
 require (
