@@ -34,9 +34,10 @@ func ParseFromFile(filename string) (*Definitions, error) {
 // Definitions represents a WSDL 1.1 file, corresponding to the <definitions> element.
 // It can handle both namespaced and non-namespaced WSDL documents.
 type Definitions struct {
-	XMLName         xml.Name `xml:"definitions"`
-	TargetNamespace string   `xml:"targetNamespace,attr"`
-	Name            string   `xml:"name,attr"`
+	XMLName         xml.Name   `xml:"definitions"`
+	TargetNamespace string     `xml:"targetNamespace,attr"`
+	Name            string     `xml:"name,attr"`
+	ExtraAttrs      []xml.Attr `xml:",any,attr"` // Captures xmlns:* namespace declarations
 
 	Imports  []Import   `xml:"import"`
 	Types    *Types     `xml:"types"`

@@ -55,14 +55,19 @@ func (g *Generator) getBindingStyle() BindingStyle {
 	return style
 }
 
-// getConsistentTypeName returns the Go type name with consistent wrapper naming
-func (g *Generator) getConsistentTypeName(xmlElementName string, bindingStyle BindingStyle) string {
+// getConsistentTypeName returns the Go type name with consistent wrapper naming.
+// nsURI is the namespace URI the element belongs to (resolved from the WSDL
+// message part's QName prefix), used to look up the Go type prefix. For
+// cross-namespace WSDLs where operations and types live in different
+// namespaces, callers must pass the element's own namespace rather than the
+// WSDL's target namespace.
+func (g *Generator) getConsistentTypeName(xmlElementName, nsURI string, bindingStyle BindingStyle) string {
 	baseName := toGoName(xmlElementName)
 
-	// Apply namespace prefix if scoping is enabled.
-	// Operation message elements belong to the WSDL's target namespace.
-	if g.namespaceScopingEnabled() && g.definitions.TargetNamespace != "" {
-		if prefix := g.nsPrefix(g.definitions.TargetNamespace); prefix != "" {
+	// Apply namespace prefix if scoping is enabled. The prefix is decided by
+	// the element's own namespace, not the containing WSDL's target namespace.
+	if g.namespaceScopingEnabled() && nsURI != "" {
+		if prefix := g.nsPrefix(nsURI); prefix != "" {
 			baseName = prefix + "_" + baseName
 		}
 	}
