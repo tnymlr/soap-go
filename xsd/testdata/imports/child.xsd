@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://example.com/child"
+           xmlns:gc="http://example.com/grandchild"
+           targetNamespace="http://example.com/child"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="http://example.com/grandchild" schemaLocation="grandchild.xsd"/>
+
+    <xs:element name="ChildElement" type="xs:string"/>
+
+    <xs:complexType name="ChildType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="gc" type="gc:GrandchildType"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

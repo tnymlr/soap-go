@@ -12,7 +12,7 @@ import (
 type Config struct {
 	PackageName       string
 	GenerateClient    bool              // Whether to generate SOAP client code
-	NamespacePrefixes map[string]string  // Namespace URI → short prefix for type names
+	NamespacePrefixes map[string]string // Namespace URI → short prefix for type names
 }
 
 // Generator generates Go code from WSDL definitions

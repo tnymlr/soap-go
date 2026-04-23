@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Parent that xs:includes a sibling (same namespace) and also xs:imports
+    a foreign namespace. Tests that xs:include and xs:import interact
+    correctly: the included file's content merges into this schema's
+    namespace, and the imported schema is a separate sibling.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:foreign="http://example.com/foreign"
+           targetNamespace="http://example.com/mixed"
+           elementFormDefault="qualified">
+
+    <xs:include schemaLocation="mixed_include.xsd"/>
+    <xs:import namespace="http://example.com/foreign" schemaLocation="foreign.xsd"/>
+
+    <xs:element name="MixedRoot" type="xs:string"/>
+</xs:schema>

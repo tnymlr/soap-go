@@ -21,11 +21,22 @@ func ParseFromFile(filename string) (*Definitions, error) {
 	}
 
 	if defs.Types != nil {
+		// Imports bring in different namespaces, so they can't be merged
+		// into the parent — they sit alongside as sibling schemas. We
+		// collect them into `additional` and append after the loop rather
+		// than mutating the slice we're iterating over.
+		var additional []xsd.Schema
 		for i := range defs.Types.Schemas {
 			if err := defs.Types.Schemas[i].ResolveIncludes(filename); err != nil {
 				return nil, fmt.Errorf("resolve xs:include: %w", err)
 			}
+			imported, err := defs.Types.Schemas[i].ResolveImports(filename)
+			if err != nil {
+				return nil, fmt.Errorf("resolve xs:import: %w", err)
+			}
+			additional = append(additional, imported...)
 		}
+		defs.Types.Schemas = append(defs.Types.Schemas, additional...)
 	}
 
 	return &defs, nil
@@ -34,9 +45,10 @@ func ParseFromFile(filename string) (*Definitions, error) {
 // Definitions represents a WSDL 1.1 file, corresponding to the <definitions> element.
 // It can handle both namespaced and non-namespaced WSDL documents.
 type Definitions struct {
-	XMLName         xml.Name `xml:"definitions"`
-	TargetNamespace string   `xml:"targetNamespace,attr"`
-	Name            string   `xml:"name,attr"`
+	XMLName         xml.Name   `xml:"definitions"`
+	TargetNamespace string     `xml:"targetNamespace,attr"`
+	Name            string     `xml:"name,attr"`
+	ExtraAttrs      []xml.Attr `xml:",any,attr"` // Captures xmlns:* namespace declarations
 
 	Imports  []Import   `xml:"import"`
 	Types    *Types     `xml:"types"`

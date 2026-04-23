@@ -362,14 +362,13 @@ func (g *Generator) getMessageElementType(messageName string) (string, error) {
 			if len(message.Parts) > 0 {
 				part := message.Parts[0]
 				if part.Element != "" {
-					// Extract element name
-					elementName := part.Element
-					if colonIdx := strings.LastIndex(elementName, ":"); colonIdx != -1 {
-						elementName = elementName[colonIdx+1:]
-					}
-
-					// Use consistent type naming based on binding style
-					return g.getConsistentTypeName(elementName, bindingStyle), nil
+					// Resolve the QName reference to its namespace URI.
+					// In cross-namespace WSDLs the message part's element
+					// may live in a different namespace than the WSDL's
+					// targetNamespace, so we resolve the prefix via the
+					// WSDL's xmlns declarations rather than assuming.
+					nsURI, elementName := g.definitions.ResolveQName(part.Element)
+					return g.getConsistentTypeName(elementName, nsURI, bindingStyle), nil
 				}
 			}
 		}

@@ -32,6 +32,17 @@ func TestUnmarshalGlobalWeather(t *testing.T) {
 			Local: "definitions",
 		},
 		TargetNamespace: "http://www.webserviceX.NET",
+		ExtraAttrs: []xml.Attr{
+			{Name: xml.Name{Space: "xmlns", Local: "tm"}, Value: "http://microsoft.com/wsdl/mime/textMatching/"},
+			{Name: xml.Name{Space: "xmlns", Local: "soapenc"}, Value: "http://schemas.xmlsoap.org/soap/encoding/"},
+			{Name: xml.Name{Space: "xmlns", Local: "mime"}, Value: "http://schemas.xmlsoap.org/wsdl/mime/"},
+			{Name: xml.Name{Space: "xmlns", Local: "tns"}, Value: "http://www.webserviceX.NET"},
+			{Name: xml.Name{Space: "xmlns", Local: "soap"}, Value: "http://schemas.xmlsoap.org/wsdl/soap/"},
+			{Name: xml.Name{Space: "xmlns", Local: "s"}, Value: "http://www.w3.org/2001/XMLSchema"},
+			{Name: xml.Name{Space: "xmlns", Local: "soap12"}, Value: "http://schemas.xmlsoap.org/wsdl/soap12/"},
+			{Name: xml.Name{Space: "xmlns", Local: "http"}, Value: "http://schemas.xmlsoap.org/wsdl/http/"},
+			{Name: xml.Name{Space: "xmlns", Local: "wsdl"}, Value: "http://schemas.xmlsoap.org/wsdl/"},
+		},
 		Types: &wsdl.Types{
 			Schemas: []xsd.Schema{
 				{},
