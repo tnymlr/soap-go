@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"testing"
 
-	"github.com/justinclift-prvidr/soap-go/wsdl"
+	"github.com/tnymlr/soap-go/wsdl"
 )
 
 func TestDefinitions_NamespacePrefixMap(t *testing.T) {
@@ -44,10 +44,10 @@ func TestDefinitions_ResolveQName(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		ref        string
-		wantNSURI  string
-		wantLocal  string
+		name      string
+		ref       string
+		wantNSURI string
+		wantLocal string
 	}{
 		{
 			name:      "prefixed reference resolves to declared namespace",

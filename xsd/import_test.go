@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/justinclift-prvidr/soap-go/xsd"
+	"github.com/tnymlr/soap-go/xsd"
 )
 
 func targetNamespaces(schemas []xsd.Schema) []string {
