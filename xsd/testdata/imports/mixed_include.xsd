@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Included by include_with_import.xsd. Has no targetNamespace (chameleon
+    include) and imports a foreign namespace whose import should bubble up
+    to the parent during xs:include resolution.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:bubble="http://example.com/bubbled">
+
+    <xs:import namespace="http://example.com/bubbled" schemaLocation="bubbled.xsd"/>
+
+    <xs:element name="IncludedElement" type="xs:string"/>
+</xs:schema>

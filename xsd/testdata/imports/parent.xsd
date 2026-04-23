@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://example.com/parent"
+           xmlns:child="http://example.com/child"
+           targetNamespace="http://example.com/parent"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="http://example.com/child" schemaLocation="child.xsd"/>
+
+    <xs:element name="ParentElement" type="xs:string"/>
+
+    <xs:complexType name="ParentType">
+        <xs:sequence>
+            <xs:element name="childRef" type="child:ChildType"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

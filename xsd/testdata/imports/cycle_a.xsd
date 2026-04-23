@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:b="http://example.com/cycle-b"
+           targetNamespace="http://example.com/cycle-a">
+
+    <xs:import namespace="http://example.com/cycle-b" schemaLocation="cycle_b.xsd"/>
+    <xs:element name="AElement" type="xs:string"/>
+</xs:schema>
