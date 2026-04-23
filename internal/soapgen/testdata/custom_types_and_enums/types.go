@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 )
 
-// Enumeration types
+// Simple types
 
 // StatusType represents an enumeration type
 type StatusType string
@@ -30,6 +30,9 @@ func (e StatusType) IsValid() bool {
 		return false
 	}
 }
+
+// UserIdType represents the UserIdType simpleType (restricting xs:long)
+type UserIdType int64
 
 // Complex types
 

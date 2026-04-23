@@ -1,6 +1,6 @@
 package enumeration_simple_type
 
-// Enumeration types
+// Simple types
 
 // ColorType represents an enumeration type
 type ColorType string
