@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Two <xs:import> elements for the same namespace, neither carrying a
+  schemaLocation. The resolver must still error: deduping doesn't rescue
+  imports that nobody supplies a location for.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/duplicate-no-location">
+
+    <xs:import namespace="http://example.com/somewhere"/>
+    <xs:import namespace="http://example.com/somewhere"/>
+
+    <xs:element name="Root" type="xs:string"/>
+</xs:schema>

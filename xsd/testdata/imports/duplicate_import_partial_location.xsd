@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Models the shape of two <xs:import> elements for the same namespace,
+  where the first omits schemaLocation and the second provides it.
+  soap-go must treat these as one logical import of the resolvable
+  variant.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/duplicate-import">
+
+    <xs:import namespace="http://example.com/foreign"/>
+    <xs:import namespace="http://example.com/foreign" schemaLocation="foreign.xsd"/>
+
+    <xs:element name="Root" type="xs:string"/>
+</xs:schema>

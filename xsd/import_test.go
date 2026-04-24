@@ -114,6 +114,85 @@ func TestResolveImports_NoSchemaLocation(t *testing.T) {
 	}
 }
 
+func TestResolveImports_DuplicateImportsSameNamespacePrefersSchemaLocation(t *testing.T) {
+	t.Parallel()
+	// Mirrors an internal test pattern: two imports for the same namespace,
+	// the first without schemaLocation, the second with. Processing should
+	// pick the resolvable variant rather than erroring on the first.
+	path := filepath.Join("testdata", "imports", "duplicate_import_partial_location.xsd")
+	s := parseFile(t, path)
+
+	imported, err := s.ResolveImports(path)
+	if err != nil {
+		t.Fatalf("ResolveImports: %v", err)
+	}
+	ns := targetNamespaces(imported)
+	if len(ns) != 1 || ns[0] != "http://example.com/foreign" {
+		t.Errorf("expected single imported schema http://example.com/foreign, got: %v", ns)
+	}
+}
+
+func TestResolveImports_DuplicateIdenticalImportsCollapseToOne(t *testing.T) {
+	t.Parallel()
+	// Same namespace AND same schemaLocation declared twice — dedupe must
+	// load the target schema exactly once, not duplicate it in the result.
+	path := filepath.Join("testdata", "imports", "duplicate_import_identical.xsd")
+	s := parseFile(t, path)
+
+	imported, err := s.ResolveImports(path)
+	if err != nil {
+		t.Fatalf("ResolveImports: %v", err)
+	}
+	if len(imported) != 1 {
+		t.Fatalf("expected exactly 1 imported schema, got %d: %v", len(imported), targetNamespaces(imported))
+	}
+	if imported[0].TargetNamespace != "http://example.com/foreign" {
+		t.Errorf("expected http://example.com/foreign, got %q", imported[0].TargetNamespace)
+	}
+}
+
+func TestResolveImports_DuplicateImportsSameNamespaceConflictingLocationsErrors(t *testing.T) {
+	t.Parallel()
+	// Two imports of the same namespace pointing to different files —
+	// soap-go refuses to pick one. Error must identify the namespace and
+	// both conflicting locations so the author can decide.
+	path := filepath.Join("testdata", "imports", "duplicate_import_different_locations.xsd")
+	s := parseFile(t, path)
+
+	_, err := s.ResolveImports(path)
+	if err == nil {
+		t.Fatal("expected error for conflicting schemaLocations, got nil")
+	}
+	if !strings.Contains(err.Error(), "conflicting") {
+		t.Errorf("expected error to describe conflict, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "http://example.com/foreign") {
+		t.Errorf("expected error to identify the namespace, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "foreign.xsd") || !strings.Contains(err.Error(), "alternate-foreign.xsd") {
+		t.Errorf("expected error to name both locations, got: %v", err)
+	}
+}
+
+func TestResolveImports_DuplicateImportsSameNamespaceAllMissingLocationErrors(t *testing.T) {
+	t.Parallel()
+	// Dedupe collapses the two imports into one, but that single entry
+	// still has no schemaLocation — the original guard must still fire.
+	path := filepath.Join("testdata", "imports", "duplicate_import_no_location.xsd")
+	s := parseFile(t, path)
+
+	_, err := s.ResolveImports(path)
+	if err == nil {
+		t.Fatal("expected error for duplicate imports both missing schemaLocation, got nil")
+	}
+	if !strings.Contains(err.Error(), "http://example.com/somewhere") {
+		t.Errorf("expected error to identify the namespace, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "schemaLocation") {
+		t.Errorf("expected error to mention schemaLocation, got: %v", err)
+	}
+}
+
 func TestResolveImports_NoImports(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join("testdata", "imports", "grandchild.xsd")
