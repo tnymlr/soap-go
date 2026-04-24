@@ -163,6 +163,8 @@ type HTTPOperation struct {
 type BindingBody struct {
 	SOAP11Body           *SOAPBody             `xml:"http://schemas.xmlsoap.org/wsdl/soap/ body"`
 	SOAP12Body           *SOAPBody             `xml:"http://schemas.xmlsoap.org/wsdl/soap12/ body"`
+	SOAP11Header         []SOAPHeader          `xml:"http://schemas.xmlsoap.org/wsdl/soap/ header"`
+	SOAP12Header         []SOAPHeader          `xml:"http://schemas.xmlsoap.org/wsdl/soap12/ header"`
 	URLReplacement       *URLReplacement       `xml:"http://schemas.xmlsoap.org/wsdl/http/ urlReplacement"`
 	URLEncoded           *URLEncoded           `xml:"http://schemas.xmlsoap.org/wsdl/http/ urlEncoded"`
 	MIMEContent          []*MIMEContent        `xml:"http://schemas.xmlsoap.org/wsdl/mime/ content"`
@@ -176,6 +178,23 @@ type SOAPBody struct {
 	Namespace     string `xml:"namespace,attr"`
 	EncodingStyle string `xml:"encodingStyle,attr"`
 	Parts         string `xml:"parts,attr"`
+}
+
+// SOAPHeader corresponds to a <soap:header> or <soap12:header> element inside
+// the <input> or <output> of a binding operation. The message/part attributes
+// point at a <wsdl:message> and one of its <wsdl:part> entries; use and
+// namespace mirror the equivalent attributes on <soap:body>.
+//
+// Nested <soap:headerfault> elements are not modelled here: WSDLs in the wild
+// sometimes declare them with malformed references, no generator surface
+// currently consumes them, and encoding/xml silently drops unknown children,
+// so parsing is unaffected by their omission.
+type SOAPHeader struct {
+	Message       string `xml:"message,attr"`
+	Part          string `xml:"part,attr"`
+	Use           string `xml:"use,attr"`
+	Namespace     string `xml:"namespace,attr"`
+	EncodingStyle string `xml:"encodingStyle,attr"`
 }
 
 // URLReplacement corresponds to the <http:urlReplacement> element.

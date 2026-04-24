@@ -206,6 +206,46 @@ func (g *Generator) generateOperationMethod(
 	// Get SOAP action
 	soapAction := g.getSOAPActionForOperation(operation.Name, binding)
 
+	// Look up the matching binding operation so we can inspect its
+	// <soap:header> declarations.
+	var bindingOp *wsdl.BindingOperation
+	for i := range binding.BindingOperations {
+		if binding.BindingOperations[i].Name == operation.Name {
+			bindingOp = &binding.BindingOperations[i]
+			break
+		}
+	}
+
+	// Resolve input/output header types. SOAP 1.2 headers are not yet
+	// surfaced to the generator since no operation in scope uses them.
+	var inputHeader *headerType
+	if bindingOp != nil && bindingOp.Input != nil && len(bindingOp.Input.SOAP11Header) > 0 {
+		inputHeader, err = g.resolveHeaderType(&bindingOp.Input.SOAP11Header[0])
+		if err != nil {
+			return fmt.Errorf("failed to resolve input header for operation %s: %w", operation.Name, err)
+		}
+	}
+	var outputHeader *headerType
+	if !isOneWay && bindingOp != nil && bindingOp.Output != nil && len(bindingOp.Output.SOAP11Header) > 0 {
+		outputHeader, err = g.resolveHeaderType(&bindingOp.Output.SOAP11Header[0])
+		if err != nil {
+			return fmt.Errorf("failed to resolve output header for operation %s: %w", operation.Name, err)
+		}
+	}
+
+	// When the operation declares an output header, bundle the typed
+	// header and body together in a generated <OpName>Result struct.
+	resultTypeName := ""
+	if outputHeader != nil {
+		resultTypeName = methodName + "Result"
+		file.P("// ", resultTypeName, " bundles the typed SOAP Header and Body returned by ", methodName, ".")
+		file.P("type ", resultTypeName, " struct {")
+		file.P("\tHeader *", outputHeader.GoName)
+		file.P("\tBody   *", outputType)
+		file.P("}")
+		file.P()
+	}
+
 	// Generate method signature and documentation
 	if operation.Documentation != "" {
 		// Clean up documentation
@@ -220,20 +260,37 @@ func (g *Generator) generateOperationMethod(
 		}
 	}
 
-	// Generate different method signatures for one-way vs request-response operations
-	if isOneWay {
-		// One-way operation: return only error
+	// Emit the method signature. Shape depends on three axes: one-way vs
+	// request-response, whether an input header is declared, and whether
+	// an output header is declared (implying a <OpName>Result return type).
+	sig := "func (c *Client) " + methodName + "(ctx " + file.QualifiedGoIdent(codegen.ContextIdent)
+	if inputHeader != nil {
+		sig += ", header *" + inputHeader.GoName
+	}
+	sig += ", req *" + inputType + ", opts ...ClientOption)"
+	switch {
+	case isOneWay:
+		sig += " " + file.QualifiedGoIdent(codegen.ErrorIdent) + " {"
+	case outputHeader != nil:
+		sig += " (*" + resultTypeName + ", " + file.QualifiedGoIdent(codegen.ErrorIdent) + ") {"
+	default:
+		sig += " (*" + outputType + ", " + file.QualifiedGoIdent(codegen.ErrorIdent) + ") {"
+	}
+	file.P(sig)
+
+	// Envelope construction — prepend WithHeaderContent when an input
+	// header is declared.
+	if inputHeader != nil {
 		file.P(
-			"func (c *Client) ",
-			methodName,
-			"(ctx ",
-			file.QualifiedGoIdent(codegen.ContextIdent),
-			", req *",
-			inputType,
-			", opts ...ClientOption) ",
-			file.QualifiedGoIdent(codegen.ErrorIdent),
-			" {",
+			"\treqEnvelope, err := ",
+			file.QualifiedGoIdent(codegen.SOAPNewEnvelopeIdent),
+			"(",
+			file.QualifiedGoIdent(codegen.SOAPWithHeaderContentIdent),
+			"(header), ",
+			file.QualifiedGoIdent(codegen.SOAPWithBodyIdent),
+			"(req))",
 		)
+	} else {
 		file.P(
 			"\treqEnvelope, err := ",
 			file.QualifiedGoIdent(codegen.SOAPNewEnvelopeIdent),
@@ -241,6 +298,8 @@ func (g *Generator) generateOperationMethod(
 			file.QualifiedGoIdent(codegen.SOAPWithBodyIdent),
 			"(req))",
 		)
+	}
+	if isOneWay {
 		file.P("\tif err != nil {")
 		file.P(
 			"\t\treturn ",
@@ -248,37 +307,7 @@ func (g *Generator) generateOperationMethod(
 			"(\"failed to create SOAP envelope: %w\", err)",
 		)
 		file.P("\t}")
-		if soapAction != "" {
-			file.P("\t_, err = c.Call(ctx, \"", soapAction, "\", reqEnvelope, opts...)")
-		} else {
-			file.P("\t_, err = c.Call(ctx, \"\", reqEnvelope, opts...)")
-		}
-		file.P("\tif err != nil {")
-		file.P("\t\treturn ", file.QualifiedGoIdent(codegen.FmtErrorfIdent), "(\"SOAP call failed: %w\", err)")
-		file.P("\t}")
-		file.P("\treturn nil")
 	} else {
-		// Request-response operation: return response and error
-		file.P(
-			"func (c *Client) ",
-			methodName,
-			"(ctx ",
-			file.QualifiedGoIdent(codegen.ContextIdent),
-			", req *",
-			inputType,
-			", opts ...ClientOption) (*",
-			outputType,
-			", ",
-			file.QualifiedGoIdent(codegen.ErrorIdent),
-			") {",
-		)
-		file.P(
-			"\treqEnvelope, err := ",
-			file.QualifiedGoIdent(codegen.SOAPNewEnvelopeIdent),
-			"(",
-			file.QualifiedGoIdent(codegen.SOAPWithBodyIdent),
-			"(req))",
-		)
 		file.P("\tif err != nil {")
 		file.P(
 			"\t\treturn nil, ",
@@ -286,11 +315,21 @@ func (g *Generator) generateOperationMethod(
 			"(\"failed to create SOAP envelope: %w\", err)",
 		)
 		file.P("\t}")
-		if soapAction != "" {
-			file.P("\trespEnvelope, err := c.Call(ctx, \"", soapAction, "\", reqEnvelope, opts...)")
-		} else {
-			file.P("\trespEnvelope, err := c.Call(ctx, \"\", reqEnvelope, opts...)")
-		}
+	}
+
+	// Call + response handling.
+	callAction := "\"\""
+	if soapAction != "" {
+		callAction = "\"" + soapAction + "\""
+	}
+	if isOneWay {
+		file.P("\t_, err = c.Call(ctx, ", callAction, ", reqEnvelope, opts...)")
+		file.P("\tif err != nil {")
+		file.P("\t\treturn ", file.QualifiedGoIdent(codegen.FmtErrorfIdent), "(\"SOAP call failed: %w\", err)")
+		file.P("\t}")
+		file.P("\treturn nil")
+	} else {
+		file.P("\trespEnvelope, err := c.Call(ctx, ", callAction, ", reqEnvelope, opts...)")
 		file.P("\tif err != nil {")
 		file.P("\t\treturn nil, ", file.QualifiedGoIdent(codegen.FmtErrorfIdent), "(\"SOAP call failed: %w\", err)")
 		file.P("\t}")
@@ -306,7 +345,62 @@ func (g *Generator) generateOperationMethod(
 			"(\"failed to unmarshal response body: %w\", err)",
 		)
 		file.P("\t}")
-		file.P("\treturn &result, nil")
+
+		if outputHeader == nil {
+			file.P("\treturn &result, nil")
+		} else {
+			// Locate and decode the declared response header, then
+			// bundle it into the generated Result wrapper. Strict:
+			// a missing header is an error, per project decision.
+			file.P("\tif respEnvelope.Header == nil {")
+			file.P(
+				"\t\treturn nil, ",
+				file.QualifiedGoIdent(codegen.FmtErrorfIdent),
+				"(\"expected response header {%s}%s, envelope has no header\", \"",
+				outputHeader.Namespace,
+				"\", \"",
+				outputHeader.LocalName,
+				"\")",
+			)
+			file.P("\t}")
+			file.P("\tvar respHeader ", outputHeader.GoName)
+			file.P("\tfoundHeader := false")
+			file.P("\tfor _, entry := range respEnvelope.Header.Entries {")
+			file.P(
+				"\t\tif entry.XMLName.Space == \"",
+				outputHeader.Namespace,
+				"\" && entry.XMLName.Local == \"",
+				outputHeader.LocalName,
+				"\" {",
+			)
+			file.P(
+				"\t\t\tif err := ",
+				file.QualifiedGoIdent(codegen.SOAPUnmarshalHeaderEntryIdent),
+				"(entry, &respHeader); err != nil {",
+			)
+			file.P(
+				"\t\t\t\treturn nil, ",
+				file.QualifiedGoIdent(codegen.FmtErrorfIdent),
+				"(\"failed to unmarshal response header: %w\", err)",
+			)
+			file.P("\t\t\t}")
+			file.P("\t\t\tfoundHeader = true")
+			file.P("\t\t\tbreak")
+			file.P("\t\t}")
+			file.P("\t}")
+			file.P("\tif !foundHeader {")
+			file.P(
+				"\t\treturn nil, ",
+				file.QualifiedGoIdent(codegen.FmtErrorfIdent),
+				"(\"expected response header {%s}%s, not found\", \"",
+				outputHeader.Namespace,
+				"\", \"",
+				outputHeader.LocalName,
+				"\")",
+			)
+			file.P("\t}")
+			file.P("\treturn &", resultTypeName, "{Header: &respHeader, Body: &result}, nil")
+		}
 	}
 	file.P("}")
 	file.P()
@@ -375,6 +469,56 @@ func (g *Generator) getMessageElementType(messageName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("message %s not found", messageName)
+}
+
+// headerType describes a WSDL <soap:header> reference resolved to its Go type
+// plus the XML namespace/local name the element carries. The namespace and
+// local name are needed at response-decode time to match the incoming
+// HeaderEntry against the declared header element.
+type headerType struct {
+	GoName    string
+	Namespace string
+	LocalName string
+}
+
+// resolveHeaderType resolves a <soap:header>'s message+part reference to a
+// Go type name and the corresponding XML element identity. Unlike body
+// resolution (which implicitly takes the first part of the message), header
+// resolution honours the part name declared on the binding — WSDL permits
+// multi-part messages and <soap:header> must name which part carries the
+// header payload.
+func (g *Generator) resolveHeaderType(h *wsdl.SOAPHeader) (*headerType, error) {
+	messageName := h.Message
+	if colonIdx := strings.LastIndex(messageName, ":"); colonIdx != -1 {
+		messageName = messageName[colonIdx+1:]
+	}
+
+	bindingStyle := g.getBindingStyle()
+
+	for _, message := range g.definitions.Messages {
+		if message.Name != messageName {
+			continue
+		}
+		for _, part := range message.Parts {
+			if part.Name != h.Part {
+				continue
+			}
+			if part.Element == "" {
+				return nil, fmt.Errorf(
+					"header part %q of message %q has no element reference",
+					h.Part, messageName,
+				)
+			}
+			nsURI, elementName := g.definitions.ResolveQName(part.Element)
+			return &headerType{
+				GoName:    g.getConsistentTypeName(elementName, nsURI, bindingStyle),
+				Namespace: nsURI,
+				LocalName: elementName,
+			}, nil
+		}
+		return nil, fmt.Errorf("header part %q not found in message %q", h.Part, messageName)
+	}
+	return nil, fmt.Errorf("header message %q not found", messageName)
 }
 
 // getSOAPActionForOperation gets the SOAP action for an operation from binding

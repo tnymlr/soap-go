@@ -1,6 +1,7 @@
 package soap
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"strings"
@@ -116,6 +117,8 @@ type envelopeConfig struct {
 	prefix    string
 	namespace string
 	body      any
+	header    *Header
+	headerErr error
 }
 
 func newEnvelopeConfig() *envelopeConfig {
@@ -123,6 +126,7 @@ func newEnvelopeConfig() *envelopeConfig {
 		prefix:    "soapenv",
 		namespace: Namespace,
 		body:      nil,
+		header:    nil,
 	}
 }
 
@@ -161,11 +165,166 @@ func WithBody(body any) EnvelopeOption {
 	}
 }
 
+// WithHeader sets a pre-constructed SOAP Header on the Envelope. Use this when
+// you need full control over the header (multiple entries, mustUnderstand or
+// actor attributes, etc.). For the common case of a single typed header entry,
+// prefer WithHeaderContent.
+func WithHeader(h *Header) EnvelopeOption {
+	return func(cfg *envelopeConfig) {
+		cfg.header = h
+	}
+}
+
+// WithHeaderContent adds a single typed value as a SOAP Header entry. The
+// value is marshalled to XML; its root element's name becomes the
+// HeaderEntry's XMLName and its children become the HeaderEntry's inner
+// content.
+//
+// Typical usage with generated SOAP types whose XMLName carries the correct
+// namespace:
+//
+//	soap.NewEnvelope(
+//	    soap.WithHeaderContent(&MySoapHeader{Field1: "a", Field2: "b"}),
+//	    soap.WithBody(&MyRequest{}),
+//	)
+//
+// Multiple WithHeaderContent (and WithHeader) options may be combined to
+// construct a header with several entries; entries are appended in the order
+// the options are applied.
+//
+// Limitations: attributes on the value's root element (other than xmlns
+// declarations) are not preserved on the HeaderEntry. If you need custom
+// attributes, mustUnderstand, or actor, construct a HeaderEntry directly and
+// pass it via WithHeader.
+//
+// If marshalling fails, the error is deferred and returned from NewEnvelope.
+// The first such error wins; subsequent header errors are ignored to keep
+// diagnostics focused on the original failure.
+func WithHeaderContent(v any) EnvelopeOption {
+	return func(cfg *envelopeConfig) {
+		if cfg.headerErr != nil {
+			return
+		}
+		if v == nil {
+			return
+		}
+		entry, err := headerEntryFromValue(v)
+		if err != nil {
+			cfg.headerErr = err
+			return
+		}
+		if cfg.header == nil {
+			cfg.header = &Header{Entries: []HeaderEntry{entry}}
+			return
+		}
+		cfg.header.Entries = append(cfg.header.Entries, entry)
+	}
+}
+
+// UnmarshalHeaderEntry decodes a HeaderEntry back into a typed value — the
+// response-side counterpart of WithHeaderContent. It marshals the entry
+// (preserving the entry's element name, attributes and inner XML) and
+// unmarshals the resulting element into dest.
+//
+// dest must be a non-nil pointer to a struct whose xml:"..." tag on its
+// XMLName field matches the entry's element name and namespace; otherwise
+// encoding/xml will return an UnmarshalError. Fields on the entry that dest
+// does not declare are silently ignored, matching encoding/xml's usual
+// relaxed behaviour.
+func UnmarshalHeaderEntry(entry HeaderEntry, dest any) error {
+	data, err := xml.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("soap: marshal header entry: %w", err)
+	}
+	if err := xml.Unmarshal(data, dest); err != nil {
+		return fmt.Errorf("soap: unmarshal header entry: %w", err)
+	}
+	return nil
+}
+
+// headerEntryFromValue converts an arbitrary value into a HeaderEntry. If v
+// is itself a HeaderEntry (or *HeaderEntry), it is returned verbatim. Any
+// other value is marshalled to XML and its root element is split into name
+// and inner content.
+func headerEntryFromValue(v any) (HeaderEntry, error) {
+	switch x := v.(type) {
+	case HeaderEntry:
+		return x, nil
+	case *HeaderEntry:
+		if x == nil {
+			return HeaderEntry{}, fmt.Errorf("soap: WithHeaderContent given nil *HeaderEntry")
+		}
+		return *x, nil
+	}
+	data, err := xml.Marshal(v)
+	if err != nil {
+		return HeaderEntry{}, fmt.Errorf("soap: marshal header content: %w", err)
+	}
+	return splitRootElement(data)
+}
+
+// splitRootElement parses a single XML element from data and returns a
+// HeaderEntry whose XMLName matches the element's name and whose Content is
+// the raw inner XML (children and text, preserving nested namespace
+// declarations). Attributes and xmlns declarations on the root element are
+// discarded: XMLName.Space is carried forward so the encoder can re-emit the
+// namespace, and attribute preservation is an intentionally unsupported case
+// (see WithHeaderContent docs).
+func splitRootElement(data []byte) (HeaderEntry, error) {
+	dec := xml.NewDecoder(bytes.NewReader(data))
+	var start xml.StartElement
+	var found bool
+	for {
+		tok, err := dec.Token()
+		if err != nil {
+			return HeaderEntry{}, fmt.Errorf("soap: read header token: %w", err)
+		}
+		if s, ok := tok.(xml.StartElement); ok {
+			start = s
+			found = true
+			break
+		}
+	}
+	if !found {
+		return HeaderEntry{}, fmt.Errorf("soap: no root element in marshalled header content")
+	}
+	innerStart := dec.InputOffset()
+	depth := 1
+	var innerEnd int64 = innerStart
+	for depth > 0 {
+		offsetBefore := dec.InputOffset()
+		tok, err := dec.Token()
+		if err != nil {
+			return HeaderEntry{}, fmt.Errorf("soap: scan header element: %w", err)
+		}
+		switch tok.(type) {
+		case xml.StartElement:
+			depth++
+		case xml.EndElement:
+			depth--
+			if depth == 0 {
+				innerEnd = offsetBefore
+			}
+		}
+	}
+	var content []byte
+	if innerEnd > innerStart {
+		content = data[innerStart:innerEnd]
+	}
+	return HeaderEntry{
+		XMLName: start.Name,
+		Content: content,
+	}, nil
+}
+
 // NewEnvelope creates a new SOAP envelope with the specified options.
 func NewEnvelope(opts ...EnvelopeOption) (*Envelope, error) {
 	cfg := newEnvelopeConfig()
 	for _, opt := range opts {
 		opt(cfg)
+	}
+	if cfg.headerErr != nil {
+		return nil, cfg.headerErr
 	}
 	result := Envelope{
 		XMLName: cfg.xmlName("Envelope"),
@@ -187,6 +346,16 @@ func NewEnvelope(opts ...EnvelopeOption) (*Envelope, error) {
 			return nil, err
 		}
 		result.Body.Content = bodyData
+	}
+	if cfg.header != nil {
+		hdr := *cfg.header
+		// Stamp the Header's XMLName so it inherits the envelope's prefix
+		// (e.g. "soapenv:Header"). If the caller supplied one via
+		// WithHeader, respect it.
+		if hdr.XMLName.Local == "" {
+			hdr.XMLName = cfg.xmlName("Header")
+		}
+		result.Header = &hdr
 	}
 	return &result, nil
 }

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Synthetic testdata exercising the header-aware code generator:
+    - submitOrder     declares an input <soap:header> only.
+    - reserveResource declares both input and output <soap:header>s.
+-->
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:tns="http://example.com/headers"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://example.com/headers">
+
+    <types>
+        <xs:schema elementFormDefault="qualified" targetNamespace="http://example.com/headers">
+
+            <xs:element name="RequestHeader">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="ContextID" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+            <xs:element name="ResponseHeader">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="TransactionID" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+            <xs:element name="submitOrder">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="OrderID" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+            <xs:element name="submitOrderResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Accepted" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+            <xs:element name="reserveResource">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="ResourceID" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+            <xs:element name="reserveResourceResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Reserved" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+        </xs:schema>
+    </types>
+
+    <message name="RequestHeaderMsg">
+        <part name="headerPart" element="tns:RequestHeader"/>
+    </message>
+    <message name="ResponseHeaderMsg">
+        <part name="headerPart" element="tns:ResponseHeader"/>
+    </message>
+
+    <message name="SubmitOrderRequest">
+        <part name="body" element="tns:submitOrder"/>
+    </message>
+    <message name="SubmitOrderReply">
+        <part name="body" element="tns:submitOrderResponse"/>
+    </message>
+
+    <message name="ReserveResourceRequest">
+        <part name="body" element="tns:reserveResource"/>
+    </message>
+    <message name="ReserveResourceReply">
+        <part name="body" element="tns:reserveResourceResponse"/>
+    </message>
+
+    <portType name="HeaderService">
+        <operation name="submitOrder">
+            <input message="tns:SubmitOrderRequest"/>
+            <output message="tns:SubmitOrderReply"/>
+        </operation>
+        <operation name="reserveResource">
+            <input message="tns:ReserveResourceRequest"/>
+            <output message="tns:ReserveResourceReply"/>
+        </operation>
+    </portType>
+
+    <binding name="HeaderServiceBinding" type="tns:HeaderService">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="submitOrder">
+            <soap:operation soapAction="submitOrder"/>
+            <input>
+                <soap:header message="tns:RequestHeaderMsg" part="headerPart" use="literal"/>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="reserveResource">
+            <soap:operation soapAction="reserveResource"/>
+            <input>
+                <soap:header message="tns:RequestHeaderMsg" part="headerPart" use="literal"/>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:header message="tns:ResponseHeaderMsg" part="headerPart" use="literal"/>
+                <soap:body use="literal"/>
+            </output>
+        </operation>
+    </binding>
+
+    <service name="HeaderService">
+        <port binding="tns:HeaderServiceBinding" name="HeaderService">
+            <soap:address location="http://example.com/headers"/>
+        </port>
+    </service>
+
+</definitions>
