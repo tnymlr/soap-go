@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Two <xs:import> elements for the same namespace, each pointing to a
+  different schemaLocation. soap-go refuses to guess which is authoritative
+  and returns an error.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/duplicate-different-locations">
+
+    <xs:import namespace="http://example.com/foreign" schemaLocation="foreign.xsd"/>
+    <xs:import namespace="http://example.com/foreign" schemaLocation="alternate-foreign.xsd"/>
+
+    <xs:element name="Root" type="xs:string"/>
+</xs:schema>
