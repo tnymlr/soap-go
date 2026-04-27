@@ -78,10 +78,11 @@ func shouldUseRawXMLForComplexType(complexType *xsd.ComplexType) bool {
 			return true
 		}
 
-		// Check if all elements are untyped (no type attribute and no inline complex type)
+		// Check if all elements are untyped (no type attribute, no inline complex type,
+		// and no ref to a globally-declared element).
 		hasTypedElements := false
 		for _, elem := range complexType.Sequence.Elements {
-			if elem.Type != "" || elem.ComplexType != nil {
+			if elem.Type != "" || elem.ComplexType != nil || elem.Ref != "" {
 				hasTypedElements = true
 				break
 			}
