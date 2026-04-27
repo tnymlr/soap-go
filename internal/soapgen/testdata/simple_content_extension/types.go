@@ -2,15 +2,15 @@ package simple_content_extension
 
 import (
 	"encoding/xml"
-	"time"
+	soap "github.com/justinclift-prvidr/soap-go"
 )
 
 // StateElementWrapper represents the StateElement element
 type StateElementWrapper struct {
-	XMLName   xml.Name   `xml:"StateElement"`
-	Value     string     `xml:",chardata"`
-	Name      string     `xml:"name,attr"`
-	Timestamp *time.Time `xml:"timestamp,attr,omitempty"`
+	XMLName   xml.Name          `xml:"StateElement"`
+	Value     string            `xml:",chardata"`
+	Name      string            `xml:"name,attr"`
+	Timestamp *soap.XSDDateTime `xml:"timestamp,attr,omitempty"`
 }
 
 // ValueElementWrapper represents the ValueElement element

@@ -56,6 +56,8 @@ func convertToQualifiedType(rawType string, g *codegen.File) string {
 	switch rawType {
 	case "time.Time":
 		return g.QualifiedGoIdent(codegen.TimeIdent)
+	case "soap.XSDDateTime":
+		return g.QualifiedGoIdent(codegen.SOAPXSDDateTimeIdent)
 	case "string":
 		return g.QualifiedGoIdent(codegen.StringIdent)
 	case "bool":

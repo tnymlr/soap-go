@@ -37,6 +37,7 @@ var (
 	SOAPWithBodyIdent             = GoIdent{GoImportPath: "github.com/justinclift-prvidr/soap-go", GoName: "WithBody"}
 	SOAPWithHeaderContentIdent    = GoIdent{GoImportPath: "github.com/justinclift-prvidr/soap-go", GoName: "WithHeaderContent"}
 	SOAPUnmarshalHeaderEntryIdent = GoIdent{GoImportPath: "github.com/justinclift-prvidr/soap-go", GoName: "UnmarshalHeaderEntry"}
+	SOAPXSDDateTimeIdent          = GoIdent{GoImportPath: "github.com/justinclift-prvidr/soap-go", GoName: "XSDDateTime"}
 
 	// Built-in types (no import path needed)
 	StringIdent = GoIdent{GoImportPath: "", GoName: "string"}

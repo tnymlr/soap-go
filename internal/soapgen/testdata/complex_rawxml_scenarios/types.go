@@ -2,7 +2,7 @@ package complex_rawxml_scenarios
 
 import (
 	"encoding/xml"
-	"time"
+	soap "github.com/justinclift-prvidr/soap-go"
 )
 
 // RawXML captures raw XML content for untyped elements.
@@ -35,9 +35,9 @@ type MultiAnyType struct {
 
 // PerformanceDataType represents the PerformanceDataType complex type
 type PerformanceDataType struct {
-	Timestamp  time.Time `xml:"timestamp"`
-	Metrics    *string   `xml:"metrics,omitempty"`
-	CustomData *string   `xml:"customData,omitempty"`
+	Timestamp  soap.XSDDateTime `xml:"timestamp"`
+	Metrics    *string          `xml:"metrics,omitempty"`
+	CustomData *string          `xml:"customData,omitempty"`
 }
 
 // ValidType represents the ValidType complex type
@@ -70,10 +70,10 @@ type MixedDocumentWrapper struct {
 
 // PerformanceReportWrapper represents the PerformanceReport element
 type PerformanceReportWrapper struct {
-	XMLName    xml.Name  `xml:"http://example.com/rawxml-scenarios PerformanceReport"`
-	Timestamp  time.Time `xml:"timestamp"`
-	Metrics    *string   `xml:"metrics,omitempty"`
-	CustomData *string   `xml:"customData,omitempty"`
+	XMLName    xml.Name         `xml:"http://example.com/rawxml-scenarios PerformanceReport"`
+	Timestamp  soap.XSDDateTime `xml:"timestamp"`
+	Metrics    *string          `xml:"metrics,omitempty"`
+	CustomData *string          `xml:"customData,omitempty"`
 }
 
 // UntypedElementWrapper represents the UntypedElement element

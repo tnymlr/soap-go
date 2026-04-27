@@ -2,7 +2,7 @@ package rpc_literal_consistent_wrappers
 
 import (
 	"encoding/xml"
-	"time"
+	soap "github.com/justinclift-prvidr/soap-go"
 )
 
 // AuthenticateWrapper represents the authenticate element
@@ -14,9 +14,9 @@ type AuthenticateWrapper struct {
 
 // AuthenticateResponseWrapper represents the authenticateResponse element
 type AuthenticateResponseWrapper struct {
-	XMLName xml.Name  `xml:"http://example.com/rpc-literal-test authenticateResponse"`
-	Token   string    `xml:"token"`
-	Expires time.Time `xml:"expires"`
+	XMLName xml.Name         `xml:"http://example.com/rpc-literal-test authenticateResponse"`
+	Token   string           `xml:"token"`
+	Expires soap.XSDDateTime `xml:"expires"`
 }
 
 // FetchDataWrapper represents the fetchData element
@@ -28,9 +28,9 @@ type FetchDataWrapper struct {
 
 // FetchDataResponseWrapper represents the fetchDataResponse element
 type FetchDataResponseWrapper struct {
-	XMLName      xml.Name  `xml:"http://example.com/rpc-literal-test fetchDataResponse"`
-	Data         string    `xml:"data"`
-	LastModified time.Time `xml:"lastModified"`
+	XMLName      xml.Name         `xml:"http://example.com/rpc-literal-test fetchDataResponse"`
+	Data         string           `xml:"data"`
+	LastModified soap.XSDDateTime `xml:"lastModified"`
 }
 
 // SystemStatusWrapper represents the SystemStatus element

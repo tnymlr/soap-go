@@ -137,6 +137,49 @@ func TestNestedInlineTypes_WithPrefix(t *testing.T) {
 	}
 }
 
+// TestXSDDateTime_Codegen verifies the generator emits soap.XSDDateTime
+// references (not time.Time) for xs:dateTime fields, both as element text
+// and as an attribute, and that the soap-go import is registered.
+func TestXSDDateTime_Codegen(t *testing.T) {
+	t.Parallel()
+
+	const dateTimeWSDL = `<?xml version="1.0"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://example.com/ns/v1"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://example.com/ns/v1">
+  <types>
+    <xs:schema targetNamespace="http://example.com/ns/v1" elementFormDefault="qualified">
+      <xs:element name="Record">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="When" type="xs:dateTime"/>
+          </xs:sequence>
+          <xs:attribute name="timestamp" type="xs:dateTime"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </types>
+</definitions>`
+
+	got := generateTypesContent(t, dateTimeWSDL, Config{
+		PackageName: "test",
+	})
+
+	for _, want := range []string{
+		"soap.XSDDateTime",
+		`"github.com/justinclift-prvidr/soap-go"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected %q in generated types.go, not found:\n%s", want, got)
+		}
+	}
+
+	if strings.Contains(got, "time.Time") {
+		t.Errorf("xs:dateTime field should not map to time.Time:\n%s", got)
+	}
+}
+
 func TestNsPrefixedName(t *testing.T) {
 	t.Parallel()
 

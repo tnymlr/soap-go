@@ -2,7 +2,7 @@ package comprehensive_wrapper_naming
 
 import (
 	"encoding/xml"
-	"time"
+	soap "github.com/justinclift-prvidr/soap-go"
 )
 
 // LoginRequestWrapper represents the LoginRequest element
@@ -29,9 +29,9 @@ type UserInfoWrapper struct {
 
 // LoginDataWrapper represents the LoginData element
 type LoginDataWrapper struct {
-	XMLName       xml.Name  `xml:"LoginData"`
-	LoginAttempts int32     `xml:"loginAttempts"`
-	LastLogin     time.Time `xml:"lastLogin"`
+	XMLName       xml.Name         `xml:"LoginData"`
+	LoginAttempts int32            `xml:"loginAttempts"`
+	LastLogin     soap.XSDDateTime `xml:"lastLogin"`
 }
 
 // LoginStatsWrapper represents the loginStats element

@@ -2,7 +2,7 @@ package inline_types_in_named_complex_types
 
 import (
 	"encoding/xml"
-	"time"
+	soap "github.com/justinclift-prvidr/soap-go"
 )
 
 // RawXML captures raw XML content for untyped elements.
@@ -17,8 +17,8 @@ type ResponseType_Data struct {
 
 // ResponseTypeData_Metadata represents an inline complex type
 type ResponseTypeData_Metadata struct {
-	Timestamp time.Time `xml:"timestamp"`
-	Source    string    `xml:"source"`
+	Timestamp soap.XSDDateTime `xml:"timestamp"`
+	Source    string           `xml:"source"`
 }
 
 // ResponseType_Items represents an inline complex type

@@ -2,7 +2,7 @@ package attribute_element_collisions
 
 import (
 	"encoding/xml"
-	"time"
+	soap "github.com/justinclift-prvidr/soap-go"
 )
 
 // Complex types
@@ -44,8 +44,8 @@ type MetadataInfoType struct {
 
 // TimeRangeType represents the TimeRangeType complex type
 type TimeRangeType struct {
-	Begin time.Time `xml:"Begin"`
-	End   time.Time `xml:"End"`
+	Begin soap.XSDDateTime `xml:"Begin"`
+	End   soap.XSDDateTime `xml:"End"`
 }
 
 // DownloadRequestWrapper represents the DownloadRequest element
