@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://example.com/test"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://example.com/test">
+
+    <types>
+        <xs:schema targetNamespace="http://example.com/test" elementFormDefault="qualified">
+
+            <!-- Globally-declared elements that the inline complex types
+                 below reference via xs:element ref="...". -->
+            <xs:element name="Status" type="xs:string"/>
+            <xs:element name="Detail" type="xs:string"/>
+
+            <!-- Outer wrapper. Its inline complex type contains a child
+                 ("Inner") whose own inline complex type's children are
+                 all xs:element ref="..." entries.
+
+                 This exercises shouldUseRawXMLForComplexType's classification
+                 of refs: the inner complex type has no elements with a Type
+                 attribute and no inline complex types of its own, only refs.
+                 Refs point to typed global declarations, so the inner
+                 complex type must be emitted as a proper struct rather than
+                 falling back to RawXML. -->
+            <xs:element name="OnlyRefs">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Inner">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element ref="tns:Status"/>
+                                    <xs:element ref="tns:Detail" minOccurs="0"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+            <!-- Mixed case: a bare-untyped element ("Name") plus refs.
+                 Before the fix this also fell through to RawXML because the
+                 ref entries were not classified as typed; the only "typed"
+                 candidate (Name) lacks both a Type attribute and an inline
+                 complex type, so hasTypedElements stayed false. -->
+            <xs:element name="MixedUntypedAndRefs">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Inner">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="Name"/>
+                                    <xs:element ref="tns:Status"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+        </xs:schema>
+    </types>
+
+</definitions>
