@@ -77,32 +77,11 @@ func generateInlineTypesFromElement(
 	ctx *SchemaContext,
 	registry *AnonymousTypeRegistry,
 ) bool {
-	generated := false
-
-	if element.ComplexType != nil && element.ComplexType.Sequence != nil {
-		for _, field := range element.ComplexType.Sequence.Elements {
-			if field.ComplexType != nil {
-				// Generate inline complex type using Outer_Inner naming
-				typeName := registry.generateTypeName(element.Name, field.Name)
-				// Apply namespace prefix if scoping is enabled
-				if prefix := ctx.currentNsPrefix(); prefix != "" {
-					typeName = prefix + "_" + typeName
-				}
-				generateInlineComplexTypeStruct(g, typeName, field.ComplexType, ctx)
-				generated = true
-
-				// Register this type so we can reference it later
-				ctx.anonymousTypes[typeName] = true
-
-				// Recursively check for nested inline types
-				if generateInlineTypesFromComplexType(g, field.ComplexType, typeName, ctx, registry) {
-					generated = true
-				}
-			}
-		}
+	if element.ComplexType == nil {
+		return false
 	}
-
-	return generated
+	elements, _ := contentModelChildren(element.ComplexType)
+	return generateInlineTypesFromElements(g, elements, element.Name, ctx, registry)
 }
 
 // generateInlineTypesFromComplexType recursively generates inline complex types from a complex type
@@ -113,30 +92,42 @@ func generateInlineTypesFromComplexType(
 	ctx *SchemaContext,
 	registry *AnonymousTypeRegistry,
 ) bool {
+	elements, _ := contentModelChildren(complexType)
+	return generateInlineTypesFromElements(g, elements, parentName, ctx, registry)
+}
+
+// generateInlineTypesFromElements walks a slice of content-model child
+// elements (extracted from xs:sequence, xs:all, or xs:choice) and emits
+// struct definitions for any inline complex types it finds, recursing
+// into their content models as well.
+func generateInlineTypesFromElements(
+	g *codegen.File,
+	elements []xsd.Element,
+	parentName string,
+	ctx *SchemaContext,
+	registry *AnonymousTypeRegistry,
+) bool {
 	generated := false
+	for _, field := range elements {
+		if field.ComplexType == nil {
+			continue
+		}
+		// Generate inline complex type using Outer_Inner naming
+		typeName := registry.generateTypeName(parentName, field.Name)
+		// Apply namespace prefix if scoping is enabled
+		if prefix := ctx.currentNsPrefix(); prefix != "" {
+			typeName = prefix + "_" + typeName
+		}
+		generateInlineComplexTypeStruct(g, typeName, field.ComplexType, ctx)
+		generated = true
 
-	if complexType.Sequence != nil {
-		for _, field := range complexType.Sequence.Elements {
-			if field.ComplexType != nil {
-				// Generate inline complex type using Outer_Inner naming
-				typeName := registry.generateTypeName(parentName, field.Name)
-				// Apply namespace prefix if scoping is enabled
-				if prefix := ctx.currentNsPrefix(); prefix != "" {
-					typeName = prefix + "_" + typeName
-				}
-				generateInlineComplexTypeStruct(g, typeName, field.ComplexType, ctx)
-				generated = true
+		// Register this type so we can reference it later
+		ctx.anonymousTypes[typeName] = true
 
-				// Register this type so we can reference it later
-				ctx.anonymousTypes[typeName] = true
-
-				// Recursively check for nested inline types
-				if generateInlineTypesFromComplexType(g, field.ComplexType, typeName, ctx, registry) {
-					generated = true
-				}
-			}
+		// Recursively check for nested inline types
+		if generateInlineTypesFromComplexType(g, field.ComplexType, typeName, ctx, registry) {
+			generated = true
 		}
 	}
-
 	return generated
 }

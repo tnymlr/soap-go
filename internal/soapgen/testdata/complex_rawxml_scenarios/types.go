@@ -27,10 +27,10 @@ type FlexibleDocumentType struct {
 
 // MultiAnyType represents the MultiAnyType complex type
 type MultiAnyType struct {
-	Section1               string `xml:"section1"`
-	Section2               string `xml:"section2"`
-	LocalContent           RawXML `xml:",innerxml"`
-	TargetNamespaceContent RawXML `xml:",innerxml"`
+	Section1               string  `xml:"section1"`
+	Section2               string  `xml:"section2"`
+	LocalContent           *RawXML `xml:"##localContent"`
+	TargetNamespaceContent *RawXML `xml:"##targetnamespaceContent"`
 }
 
 // PerformanceDataType represents the PerformanceDataType complex type

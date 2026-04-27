@@ -7,6 +7,52 @@ import (
 	"github.com/tnymlr/soap-go/xsd"
 )
 
+// countRawXMLFields returns the total number of struct fields that will
+// be emitted as RawXML for the given content-model children — i.e. the
+// number of inline complex types that resolve to RawXML plus the number
+// of xs:any entries.
+func countRawXMLFields(elements []xsd.Element, anys []xsd.Any) int {
+	n := 0
+	for _, field := range elements {
+		if field.Type == "" && field.ComplexType != nil &&
+			shouldUseRawXMLForComplexType(field.ComplexType) {
+			n++
+		}
+	}
+	return n + len(anys)
+}
+
+// emitContentModelFields emits Go struct fields for each element and
+// xs:any entry in a content model (xs:sequence, xs:all, or xs:choice),
+// returning true if any fields were emitted. Use contentModelChildren or
+// extensionContentModelChildren to extract the (elements, anys) pair from
+// the parent complex type or extension.
+func emitContentModelFields(
+	g *codegen.File,
+	elements []xsd.Element,
+	anys []xsd.Any,
+	ctx *SchemaContext,
+	parentName string,
+	fieldRegistry *FieldRegistry,
+) bool {
+	rawXMLCount := countRawXMLFields(elements, anys)
+
+	hasFields := false
+	for _, field := range elements {
+		if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
+			g, &field, ctx, rawXMLCount, parentName, fieldRegistry,
+		) {
+			hasFields = true
+		}
+	}
+	for _, anyElement := range anys {
+		if generateAnyFieldWithFieldRegistry(g, &anyElement, ctx, rawXMLCount, fieldRegistry) {
+			hasFields = true
+		}
+	}
+	return hasFields
+}
+
 // generateAnyFieldWithFieldRegistry generates a RawXML field for xs:any elements with collision detection
 func generateAnyFieldWithFieldRegistry(
 	g *codegen.File,

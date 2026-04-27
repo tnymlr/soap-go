@@ -69,30 +69,71 @@ func convertToQualifiedType(rawType string, g *codegen.File) string {
 	}
 }
 
-// shouldUseRawXMLForComplexType determines if a complex type should be represented as RawXML
-// instead of generating a structured type. This is true for complex types that contain xs:any elements.
-func shouldUseRawXMLForComplexType(complexType *xsd.ComplexType) bool {
+// contentModelChildren returns the elements and xs:any entries from a
+// complex type's top-level content model — xs:sequence, xs:all, or
+// xs:choice. At most one of these is non-nil per the XSD spec.
+//
+// xs:all in XSD 1.0 cannot contain xs:any, so the anys slice is always
+// nil for All. xs:choice can contain both elements and xs:any siblings.
+func contentModelChildren(complexType *xsd.ComplexType) (elements []xsd.Element, anys []xsd.Any) {
+	if complexType == nil {
+		return nil, nil
+	}
 	if complexType.Sequence != nil {
-		// Check if the sequence contains xs:any elements
-		if len(complexType.Sequence.Any) > 0 {
-			return true
-		}
+		return complexType.Sequence.Elements, complexType.Sequence.Any
+	}
+	if complexType.All != nil {
+		return complexType.All.Elements, nil
+	}
+	if complexType.Choice != nil {
+		return complexType.Choice.Elements, complexType.Choice.Any
+	}
+	return nil, nil
+}
 
-		// Check if all elements are untyped (no type attribute, no inline complex type,
-		// and no ref to a globally-declared element).
-		hasTypedElements := false
-		for _, elem := range complexType.Sequence.Elements {
-			if elem.Type != "" || elem.ComplexType != nil || elem.Ref != "" {
-				hasTypedElements = true
-				break
-			}
-		}
+// extensionContentModelChildren is the equivalent of contentModelChildren
+// for an xs:extension inside xs:complexContent.
+func extensionContentModelChildren(ext *xsd.Extension) (elements []xsd.Element, anys []xsd.Any) {
+	if ext == nil {
+		return nil, nil
+	}
+	if ext.Sequence != nil {
+		return ext.Sequence.Elements, ext.Sequence.Any
+	}
+	if ext.All != nil {
+		return ext.All.Elements, nil
+	}
+	if ext.Choice != nil {
+		return ext.Choice.Elements, ext.Choice.Any
+	}
+	return nil, nil
+}
 
-		// If there are only untyped elements, use RawXML
-		if !hasTypedElements && len(complexType.Sequence.Elements) > 0 {
-			return true
+// shouldUseRawXMLForComplexType determines if a complex type should be represented as RawXML
+// instead of generating a structured type. This is true for complex types that contain xs:any
+// elements anywhere in their content model, or whose children are all bare-untyped.
+func shouldUseRawXMLForComplexType(complexType *xsd.ComplexType) bool {
+	elements, anys := contentModelChildren(complexType)
+
+	// xs:any anywhere in the content model means we cannot generate a typed struct.
+	if len(anys) > 0 {
+		return true
+	}
+
+	if len(elements) == 0 {
+		return false
+	}
+
+	// Check if all elements are untyped (no type attribute, no inline complex type,
+	// and no ref to a globally-declared element).
+	hasTypedElements := false
+	for _, elem := range elements {
+		if elem.Type != "" || elem.ComplexType != nil || elem.Ref != "" {
+			hasTypedElements = true
+			break
 		}
 	}
 
-	return false
+	// If there are only untyped elements, use RawXML.
+	return !hasTypedElements
 }

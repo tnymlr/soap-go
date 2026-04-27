@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://example.com/test"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://example.com/test">
+
+    <types>
+        <xs:schema targetNamespace="http://example.com/test" elementFormDefault="qualified">
+
+            <!-- Globally declared elements that the xs:all bodies below
+                 reference via <xs:element ref="..."/>. -->
+            <xs:element name="Status" type="xs:string"/>
+            <xs:element name="Detail" type="xs:string"/>
+
+            <!-- Top-level element with an inline complex type whose body
+                 is xs:all. The xs:all contains a mix of:
+                   - ref to a typed global element
+                   - bare-untyped element (no type, no inline complexType)
+                   - typed element
+                   - inline complex type child
+                 The complex type also declares an attribute alongside the
+                 xs:all body — XSD allows attributes alongside any of
+                 xs:sequence / xs:all / xs:choice. -->
+            <xs:element name="AllInline">
+                <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="tns:Status" minOccurs="0"/>
+                        <xs:element name="FieldA"/>
+                        <xs:element name="FieldB" type="xs:int"/>
+                        <xs:element name="Nested" minOccurs="0">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="Inner1" type="xs:string"/>
+                                    <xs:element name="Inner2" type="xs:string"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:all>
+                    <xs:attribute name="revision" type="xs:string" use="optional"/>
+                </xs:complexType>
+            </xs:element>
+
+            <!-- Named complex type whose body is xs:all. Exercises the
+                 generateStructFromComplexType code path with xs:all. -->
+            <xs:complexType name="AllNamed">
+                <xs:all>
+                    <xs:element name="LabelA" type="xs:string"/>
+                    <xs:element name="LabelB" type="xs:string" minOccurs="0"/>
+                    <xs:element ref="tns:Detail" minOccurs="0"/>
+                </xs:all>
+            </xs:complexType>
+
+            <!-- Element that references the named complex type, so the
+                 generator emits a wrapper struct embedding AllNamed. -->
+            <xs:element name="AllNamedRef" type="tns:AllNamed"/>
+
+            <!-- xs:all -> xs:sequence -> xs:all chain. Three levels of
+                 inline-anonymous nesting with alternating content models,
+                 to exercise the inline-type registration path across
+                 mixed content models. -->
+            <xs:element name="AllSeqAll">
+                <xs:complexType>
+                    <xs:all>
+                        <xs:element name="Outer">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="Middle">
+                                        <xs:complexType>
+                                            <xs:all>
+                                                <xs:element name="LeafA" type="xs:string"/>
+                                                <xs:element name="LeafB" type="xs:int" minOccurs="0"/>
+                                            </xs:all>
+                                        </xs:complexType>
+                                    </xs:element>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:all>
+                </xs:complexType>
+            </xs:element>
+
+        </xs:schema>
+    </types>
+
+</definitions>

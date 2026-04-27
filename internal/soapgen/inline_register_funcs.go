@@ -11,19 +11,11 @@ func registerInlineTypesFromElement(
 	ctx *SchemaContext,
 	registry *AnonymousTypeRegistry,
 ) {
-	if element.ComplexType != nil && element.ComplexType.Sequence != nil {
-		for _, field := range element.ComplexType.Sequence.Elements {
-			if field.ComplexType != nil {
-				// Generate type name using the same logic as the generation pass
-				// Don't use the registry to avoid conflicts - just compute the name directly
-				typeName := toGoName(element.Name) + "_" + toGoName(field.Name)
-				ctx.anonymousTypes[typeName] = true
-
-				// Recursively register nested inline types
-				registerInlineTypesFromComplexType(field.ComplexType, typeName, ctx, registry)
-			}
-		}
+	if element.ComplexType == nil {
+		return
 	}
+	elements, _ := contentModelChildren(element.ComplexType)
+	registerInlineTypesFromElements(elements, element.Name, ctx, registry)
 }
 
 // registerInlineTypesFromComplexType recursively registers inline complex types from a complex type without generating struct definitions
@@ -33,17 +25,29 @@ func registerInlineTypesFromComplexType(
 	ctx *SchemaContext,
 	registry *AnonymousTypeRegistry,
 ) {
-	if complexType.Sequence != nil {
-		for _, field := range complexType.Sequence.Elements {
-			if field.ComplexType != nil {
-				// Generate type name using the same logic as the generation pass
-				// Don't use the registry to avoid conflicts - just compute the name directly
-				typeName := toGoName(parentName) + "_" + toGoName(field.Name)
-				ctx.anonymousTypes[typeName] = true
+	elements, _ := contentModelChildren(complexType)
+	registerInlineTypesFromElements(elements, parentName, ctx, registry)
+}
 
-				// Recursively register nested inline types
-				registerInlineTypesFromComplexType(field.ComplexType, typeName, ctx, registry)
-			}
+// registerInlineTypesFromElements walks content-model children and
+// registers names for each inline complex type found, recursing into
+// their content models as well.
+func registerInlineTypesFromElements(
+	elements []xsd.Element,
+	parentName string,
+	ctx *SchemaContext,
+	registry *AnonymousTypeRegistry,
+) {
+	for _, field := range elements {
+		if field.ComplexType == nil {
+			continue
 		}
+		// Generate type name using the same logic as the generation pass
+		// Don't use the registry to avoid conflicts - just compute the name directly
+		typeName := toGoName(parentName) + "_" + toGoName(field.Name)
+		ctx.anonymousTypes[typeName] = true
+
+		// Recursively register nested inline types
+		registerInlineTypesFromComplexType(field.ComplexType, typeName, ctx, registry)
 	}
 }

@@ -25,27 +25,10 @@ func generateInlineComplexTypeStruct(
 
 	hasFields := false
 
-	// Generate fields from the sequence
-	if complexType.Sequence != nil {
-		for _, field := range complexType.Sequence.Elements {
-			if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-				g,
-				&field,
-				ctx,
-				1,
-				typeName,
-				fieldRegistry,
-			) {
-				hasFields = true
-			}
-		}
-
-		// Handle xs:any elements in the sequence
-		for _, anyElement := range complexType.Sequence.Any {
-			if generateAnyFieldWithFieldRegistry(g, &anyElement, ctx, 1, fieldRegistry) {
-				hasFields = true
-			}
-		}
+	// Generate fields from the content model (xs:sequence, xs:all, or xs:choice)
+	elements, anys := contentModelChildren(complexType)
+	if emitContentModelFields(g, elements, anys, ctx, typeName, fieldRegistry) {
+		hasFields = true
 	}
 
 	// Generate fields from attributes
@@ -153,42 +136,10 @@ func generateStandardStructWithName(g *codegen.File, element *xsd.Element, ctx *
 	}
 
 	if element.ComplexType != nil {
-		// Handle sequence elements
-		if element.ComplexType.Sequence != nil {
-			// Count RawXML fields to determine XML tag behavior
-			rawXMLCount := 0
-			for _, field := range element.ComplexType.Sequence.Elements {
-				if field.Type == "" && field.ComplexType != nil {
-					// Only count if this inline complex type will actually become RawXML
-					if shouldUseRawXMLForComplexType(field.ComplexType) {
-						rawXMLCount++
-					}
-				}
-			}
-			for range element.ComplexType.Sequence.Any {
-				rawXMLCount++
-			}
-
-			// Generate fields
-			for _, field := range element.ComplexType.Sequence.Elements {
-				if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-					g,
-					&field,
-					ctx,
-					rawXMLCount,
-					element.Name,
-					fieldRegistry,
-				) {
-					hasFields = true
-				}
-			}
-
-			// Handle xs:any elements in the sequence
-			for _, anyElement := range element.ComplexType.Sequence.Any {
-				if generateAnyFieldWithFieldRegistry(g, &anyElement, ctx, rawXMLCount, fieldRegistry) {
-					hasFields = true
-				}
-			}
+		// Handle the top-level content model (xs:sequence, xs:all, or xs:choice)
+		elements, anys := contentModelChildren(element.ComplexType)
+		if emitContentModelFields(g, elements, anys, ctx, element.Name, fieldRegistry) {
+			hasFields = true
 		}
 
 		// Handle attributes
@@ -219,19 +170,9 @@ func generateStandardStructWithName(g *codegen.File, element *xsd.Element, ctx *
 		// Handle complex content extensions
 		if element.ComplexType.ComplexContent != nil && element.ComplexType.ComplexContent.Extension != nil {
 			ext := element.ComplexType.ComplexContent.Extension
-			if ext.Sequence != nil {
-				for _, field := range ext.Sequence.Elements {
-					if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-						g,
-						&field,
-						ctx,
-						1,
-						element.Name,
-						fieldRegistry,
-					) {
-						hasFields = true
-					}
-				}
+			extElements, extAnys := extensionContentModelChildren(ext)
+			if emitContentModelFields(g, extElements, extAnys, ctx, element.Name, fieldRegistry) {
+				hasFields = true
 			}
 
 			// Handle extension attributes
@@ -268,27 +209,10 @@ func generateStructFromComplexType(g *codegen.File, complexType *xsd.ComplexType
 
 	hasFields := false
 
-	// Handle sequence elements
-	if complexType.Sequence != nil {
-		for _, field := range complexType.Sequence.Elements {
-			if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-				g,
-				&field,
-				ctx,
-				1,
-				complexType.Name,
-				fieldRegistry,
-			) {
-				hasFields = true
-			}
-		}
-
-		// Handle xs:any elements in the sequence
-		for _, anyElement := range complexType.Sequence.Any {
-			if generateAnyFieldWithFieldRegistry(g, &anyElement, ctx, 1, fieldRegistry) {
-				hasFields = true
-			}
-		}
+	// Handle the top-level content model (xs:sequence, xs:all, or xs:choice)
+	elements, anys := contentModelChildren(complexType)
+	if emitContentModelFields(g, elements, anys, ctx, complexType.Name, fieldRegistry) {
+		hasFields = true
 	}
 
 	// Handle attributes
@@ -319,19 +243,9 @@ func generateStructFromComplexType(g *codegen.File, complexType *xsd.ComplexType
 	// Handle complex content extensions
 	if complexType.ComplexContent != nil && complexType.ComplexContent.Extension != nil {
 		ext := complexType.ComplexContent.Extension
-		if ext.Sequence != nil {
-			for _, field := range ext.Sequence.Elements {
-				if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-					g,
-					&field,
-					ctx,
-					1,
-					complexType.Name,
-					fieldRegistry,
-				) {
-					hasFields = true
-				}
-			}
+		extElements, extAnys := extensionContentModelChildren(ext)
+		if emitContentModelFields(g, extElements, extAnys, ctx, complexType.Name, fieldRegistry) {
+			hasFields = true
 		}
 
 		// Handle extension attributes
@@ -394,47 +308,17 @@ func embedComplexTypeFields(
 ) bool {
 	hasFields := false
 
-	// Handle sequence elements
-	if complexType.Sequence != nil {
-		// Count RawXML fields to determine XML tag behavior
-		rawXMLCount := 0
-		for _, field := range complexType.Sequence.Elements {
-			if field.Type == "" && field.ComplexType != nil {
-				// Only count if this inline complex type will actually become RawXML
-				if shouldUseRawXMLForComplexType(field.ComplexType) {
-					rawXMLCount++
-				}
-			}
-		}
-		for range complexType.Sequence.Any {
-			rawXMLCount++
-		}
+	// Use the complex type name as parent for anonymous type lookups, falling
+	// back to the embedding element name when the complex type is anonymous.
+	parentName := complexType.Name
+	if parentName == "" {
+		parentName = parentElementName
+	}
 
-		// Generate fields
-		for _, field := range complexType.Sequence.Elements {
-			// Use the complex type name as parent for anonymous type lookups
-			complexTypeName := complexType.Name
-			if complexTypeName == "" {
-				complexTypeName = parentElementName
-			}
-			if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-				g,
-				&field,
-				ctx,
-				rawXMLCount,
-				complexTypeName,
-				fieldRegistry,
-			) {
-				hasFields = true
-			}
-		}
-
-		// Handle xs:any elements in the sequence
-		for _, anyElement := range complexType.Sequence.Any {
-			if generateAnyFieldWithFieldRegistry(g, &anyElement, ctx, rawXMLCount, fieldRegistry) {
-				hasFields = true
-			}
-		}
+	// Handle the top-level content model (xs:sequence, xs:all, or xs:choice)
+	elements, anys := contentModelChildren(complexType)
+	if emitContentModelFields(g, elements, anys, ctx, parentName, fieldRegistry) {
+		hasFields = true
 	}
 
 	// Handle attributes
@@ -465,38 +349,9 @@ func embedComplexTypeFields(
 	// Handle complex content extensions
 	if complexType.ComplexContent != nil && complexType.ComplexContent.Extension != nil {
 		ext := complexType.ComplexContent.Extension
-		if ext.Sequence != nil {
-			// Count RawXML fields in extension
-			rawXMLCount := 0
-			for _, field := range ext.Sequence.Elements {
-				if field.Type == "" && field.ComplexType != nil {
-					// Only count if this inline complex type will actually become RawXML
-					if shouldUseRawXMLForComplexType(field.ComplexType) {
-						rawXMLCount++
-					}
-				}
-			}
-			for range ext.Sequence.Any {
-				rawXMLCount++
-			}
-
-			for _, field := range ext.Sequence.Elements {
-				// Use the complex type name as parent for anonymous type lookups
-				complexTypeName := complexType.Name
-				if complexTypeName == "" {
-					complexTypeName = parentElementName
-				}
-				if generateStructFieldWithInlineTypesAndContextAndParentAndFieldRegistry(
-					g,
-					&field,
-					ctx,
-					rawXMLCount,
-					complexTypeName,
-					fieldRegistry,
-				) {
-					hasFields = true
-				}
-			}
+		extElements, extAnys := extensionContentModelChildren(ext)
+		if emitContentModelFields(g, extElements, extAnys, ctx, parentName, fieldRegistry) {
+			hasFields = true
 		}
 
 		// Handle extension attributes
