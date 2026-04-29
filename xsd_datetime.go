@@ -33,5 +33,5 @@ func (d *XSDDateTime) UnmarshalText(text []byte) error {
 }
 
 func (d XSDDateTime) MarshalText() ([]byte, error) {
-	return []byte(d.Time.Format(time.RFC3339Nano)), nil
+	return []byte(d.Format(time.RFC3339Nano)), nil
 }

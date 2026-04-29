@@ -53,7 +53,7 @@ func TestXSDDateTime_UnmarshalText(t *testing.T) {
 			if err := d.UnmarshalText([]byte(tt.input)); err != nil {
 				t.Fatalf("UnmarshalText(%q) error: %v", tt.input, err)
 			}
-			if !d.Time.Equal(tt.want) {
+			if !d.Equal(tt.want) {
 				t.Errorf("UnmarshalText(%q) = %v, want %v", tt.input, d.Time, tt.want)
 			}
 		})
@@ -102,12 +102,12 @@ func TestXSDDateTime_XMLRoundTrip(t *testing.T) {
 	}
 
 	wantAttr := time.Date(2026, 4, 16, 17, 16, 17, 0, time.UTC)
-	if !r.When.Time.Equal(wantAttr) {
+	if !r.When.Equal(wantAttr) {
 		t.Errorf("attr = %v, want %v", r.When.Time, wantAttr)
 	}
 
 	wantBody := time.Date(2026, 4, 16, 23, 59, 59, 0, time.UTC)
-	if !r.Body.Time.Equal(wantBody) {
+	if !r.Body.Equal(wantBody) {
 		t.Errorf("body = %v, want %v", r.Body.Time, wantBody)
 	}
 
