@@ -1,8 +1,8 @@
 # SOAP Go
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/way-platform/soap-go)](https://pkg.go.dev/github.com/way-platform/soap-go)
-[![GoReportCard](https://goreportcard.com/badge/github.com/way-platform/soap-go)](https://goreportcard.com/report/github.com/way-platform/soap-go)
-[![CI](https://github.com/way-platform/soap-go/actions/workflows/release.yaml/badge.svg)](https://github.com/way-platform/soap-go/actions/workflows/release.yaml)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/tnymlr/soap-go)](https://pkg.go.dev/github.com/tnymlr/soap-go)
+[![GoReportCard](https://goreportcard.com/badge/github.com/tnymlr/soap-go)](https://goreportcard.com/report/github.com/tnymlr/soap-go)
+[![CI](https://github.com/tnymlr/soap-go/actions/workflows/ci.yaml/badge.svg)](https://github.com/tnymlr/soap-go/actions/workflows/ci.yaml)
 
 A Go SDK and CLI tool for SOAP web services.
 
@@ -14,7 +14,13 @@ A Go SDK and CLI tool for SOAP web services.
 
 ## Developing
 
-See [AGENTS.md](./AGENTS.md).
+```bash
+go test ./...                # run unit tests
+./tools/mage build           # full CI pipeline: generate, lint, test, tidy
+./tools/mage integrationtest # integration tests
+```
+
+See [AGENTS.md](./AGENTS.md) for architecture and design notes.
 
 ## CLI tool
 
@@ -54,11 +60,13 @@ $ soap
 
 ### Installing
 
+The CLI is distributed as a Go module. Install it with the Go toolchain:
+
 ```bash
-GOPROXY=direct go install github.com/tnymlr/soap-go/cmd/soap@latest
+go install github.com/tnymlr/soap-go/cmd/soap@latest
 ```
 
-Prebuilt binaries for Linux, Windows, and Mac are available from the [Releases](https://github.com/way-platform/soap-go/releases).
+The resulting `soap` binary lands in `$(go env GOBIN)` (or `$(go env GOPATH)/bin` if `GOBIN` is unset).
 
 ## License
 
@@ -66,8 +74,8 @@ This SDK is published under the [MIT License](./LICENSE).
 
 ## Security
 
-Security researchers, see the [Security Policy](https://github.com/way-platform/soap-go?tab=security-ov-file#readme).
+Security researchers, please open a private advisory via the [Security tab](https://github.com/tnymlr/soap-go/security/advisories/new).
 
 ## Code of Conduct
 
-Be nice. For more info, see the [Code of Conduct](https://github.com/way-platform/soap-go?tab=coc-ov-file#readme).
+Be nice.

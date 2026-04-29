@@ -24,7 +24,8 @@ func NewCommand() *cobra.Command {
 	_ = cmd.MarkFlagRequired("dir")
 	packageName := cmd.Flags().StringP("package", "p", "", "Go package name (required)")
 	generateClient := cmd.Flags().Bool("client", false, "generate SOAP client code")
-	nsPrefixesFile := cmd.Flags().String("namespace-prefixes", "", "JSON file mapping namespace URIs to short prefixes for type names")
+	nsPrefixesFile := cmd.Flags().
+		String("namespace-prefixes", "", "JSON file mapping namespace URIs to short prefixes for type names")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return run(config{
 			inputFile:      *inputFile,

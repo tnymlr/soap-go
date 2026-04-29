@@ -282,7 +282,9 @@ func TestUnmarshalHeaderEntry_preservesNestedContent(t *testing.T) {
 	// with its own namespace declaration must still decode cleanly.
 	entry := HeaderEntry{
 		XMLName: xml.Name{Space: "http://example.com/ns", Local: "MyHeader"},
-		Content: []byte(`<ContextID>ctx-1</ContextID><DealerID>TEST-DEALER-B</DealerID><BillingOption>postpaid</BillingOption>`),
+		Content: []byte(
+			`<ContextID>ctx-1</ContextID><DealerID>TEST-DEALER-B</DealerID><BillingOption>postpaid</BillingOption>`,
+		),
 	}
 	var got testHeader
 	if err := UnmarshalHeaderEntry(entry, &got); err != nil {

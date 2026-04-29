@@ -39,15 +39,16 @@ func Test() error {
 	if err := os.MkdirAll("build", 0o700); err != nil {
 		return err
 	}
-	return cmd(
+	return tool(
 		root(),
-		"go",
-		"test",
-		"-cover",
+		"gotestsum",
+		"--format", "testname",
+		"--",
+		"-race",
+		"-count=1",
 		"-tags=synctest",
+		"-coverprofile", "build/cover.out",
 		"./...",
-		"-coverprofile",
-		"build/cover.out",
 	).Run()
 }
 
@@ -56,16 +57,16 @@ func IntegrationTest() error {
 	if err := os.MkdirAll("build", 0o700); err != nil {
 		return err
 	}
-	return cmd(
+	return tool(
 		root(),
-		"go",
-		"test",
-		"-v",
-		"-tags",
-		"integration,synctest",
+		"gotestsum",
+		"--format", "testname",
+		"--",
+		"-race",
+		"-count=1",
+		"-tags=integration,synctest",
+		"-coverprofile", "build/integration-cover.out",
 		"./...",
-		"-coverprofile",
-		"build/integration-cover.out",
 	).Run()
 }
 

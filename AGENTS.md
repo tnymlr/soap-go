@@ -14,10 +14,9 @@ When developing this SDK, use the WSDL and SOAP specifications in [docs](./docs)
 
 ### Module structure
 
-Multi-module repo with three `go.mod` files:
+Two `go.mod` files, joined by `go.work`:
 
-- `/go.mod` — SDK root (minimal deps: `go-cmp`, `x/text`)
-- `/cmd/soap/go.mod` — CLI (depends on _released_ SDK version, not local)
+- `/go.mod` — SDK + CLI (`cmd/soap/...` lives in the same module)
 - `/tools/go.mod` — build tools (Mage, golangci-lint)
 
 ### Package dependency graph
@@ -53,7 +52,8 @@ cmd/soap/internal/{gen,doc,call}  (CLI commands)
 
 ## Developing
 
-- Build (full CI): `./tools/mage build`
+- Quick test loop: `go test ./...` (no build tags required)
+- Build (full CI): `./tools/mage build` — runs Download, Generate, Lint, Test, Tidy, Diff
 - Test: `./tools/mage test`
 - Lint: `./tools/mage lint`
 - Generate: `./tools/mage generate`

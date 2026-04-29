@@ -17,7 +17,7 @@ func parseFile(t *testing.T, path string) *xsd.Schema {
 	if err != nil {
 		t.Fatalf("open %s: %v", path, err)
 	}
-	defer f.Close()
+	t.Cleanup(func() { _ = f.Close() })
 	s, err := xsd.Parse(f)
 	if err != nil {
 		t.Fatalf("parse %s: %v", path, err)

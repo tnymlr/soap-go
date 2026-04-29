@@ -290,7 +290,7 @@ func splitRootElement(data []byte) (HeaderEntry, error) {
 	}
 	innerStart := dec.InputOffset()
 	depth := 1
-	var innerEnd int64 = innerStart
+	innerEnd := innerStart
 	for depth > 0 {
 		offsetBefore := dec.InputOffset()
 		tok, err := dec.Token()
