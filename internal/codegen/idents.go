@@ -4,16 +4,19 @@ package codegen
 // These provide type-safe access to commonly used types and functions.
 var (
 	// Standard library types
-	XMLNameIdent      = GoIdent{GoImportPath: "encoding/xml", GoName: "Name"}
-	XMLAttrIdent      = GoIdent{GoImportPath: "encoding/xml", GoName: "Attr"}
-	ContextIdent      = GoIdent{GoImportPath: "context", GoName: "Context"}
-	TimeIdent         = GoIdent{GoImportPath: "time", GoName: "Time"}
-	BytesBufferIdent  = GoIdent{GoImportPath: "bytes", GoName: "Buffer"}
-	HTTPClientIdent   = GoIdent{GoImportPath: "net/http", GoName: "Client"}
-	HTTPRequestIdent  = GoIdent{GoImportPath: "net/http", GoName: "Request"}
-	HTTPResponseIdent = GoIdent{GoImportPath: "net/http", GoName: "Response"}
-	IOReaderIdent     = GoIdent{GoImportPath: "io", GoName: "Reader"}
-	IOReadCloserIdent = GoIdent{GoImportPath: "io", GoName: "ReadCloser"}
+	XMLNameIdent         = GoIdent{GoImportPath: "encoding/xml", GoName: "Name"}
+	XMLAttrIdent         = GoIdent{GoImportPath: "encoding/xml", GoName: "Attr"}
+	XMLEncoderIdent      = GoIdent{GoImportPath: "encoding/xml", GoName: "Encoder"}
+	XMLDecoderIdent      = GoIdent{GoImportPath: "encoding/xml", GoName: "Decoder"}
+	XMLStartElementIdent = GoIdent{GoImportPath: "encoding/xml", GoName: "StartElement"}
+	ContextIdent         = GoIdent{GoImportPath: "context", GoName: "Context"}
+	TimeIdent            = GoIdent{GoImportPath: "time", GoName: "Time"}
+	BytesBufferIdent     = GoIdent{GoImportPath: "bytes", GoName: "Buffer"}
+	HTTPClientIdent      = GoIdent{GoImportPath: "net/http", GoName: "Client"}
+	HTTPRequestIdent     = GoIdent{GoImportPath: "net/http", GoName: "Request"}
+	HTTPResponseIdent    = GoIdent{GoImportPath: "net/http", GoName: "Response"}
+	IOReaderIdent        = GoIdent{GoImportPath: "io", GoName: "Reader"}
+	IOReadCloserIdent    = GoIdent{GoImportPath: "io", GoName: "ReadCloser"}
 
 	// Standard library functions
 	FmtSprintfIdent                = GoIdent{GoImportPath: "fmt", GoName: "Sprintf"}

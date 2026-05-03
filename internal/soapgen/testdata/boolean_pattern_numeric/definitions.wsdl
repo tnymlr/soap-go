@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://example.com/test"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://example.com/test">
+    <types>
+        <xsd:schema targetNamespace="http://example.com/test">
+            <xsd:simpleType name="NumericFlag">
+                <xsd:restriction base="xsd:boolean">
+                    <xsd:pattern value="0|1"/>
+                </xsd:restriction>
+            </xsd:simpleType>
+            <xsd:simpleType name="VerboseFlag">
+                <xsd:restriction base="xsd:boolean">
+                    <xsd:pattern value="true|false"/>
+                </xsd:restriction>
+            </xsd:simpleType>
+        </xsd:schema>
+    </types>
+</definitions>

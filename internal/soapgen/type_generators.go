@@ -34,6 +34,8 @@ func generateSimpleTypeConstants(g *codegen.File, ctx *SchemaContext) {
 		switch {
 		case simpleType.Restriction != nil && len(simpleType.Restriction.Enumerations) > 0:
 			generateEnumType(g, simpleType, ctx)
+		case simpleType.Restriction != nil && requiresLexicalFormBoolean(simpleType):
+			generateLexicalFormBoolean(g, simpleType, ctx)
 		case simpleType.Restriction != nil:
 			generateRestrictionAlias(g, simpleType, ctx)
 		case simpleType.List != nil:
